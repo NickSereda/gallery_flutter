@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:photo_gallery_flutter/services/network_helper.dart';
+import 'package:photo_gallery_flutter/models/result.dart';
+import 'package:photo_gallery_flutter/networking/rest_client.dart';
 
 import '../keys.dart';
 
@@ -10,6 +12,8 @@ class GalleryData extends ChangeNotifier {
   int _pageNumber = 1;
 
   List<String> _photos = [];
+
+  final RestClient _restClient = RestClient(Dio());
 
   int get photosCount {
     return _photos.length;
@@ -20,34 +24,19 @@ class GalleryData extends ChangeNotifier {
   }
 
   Future<void> getPhotos() async {
-    List<String> pixabyImages = [];
 
-    String url =
-        "https://pixabay.com/api/?key=$pixabyAPIKey&image_type=photo&per_page=20&page=$_pageNumber";
+    final Result result = await _restClient.getPhotos(pixabyAPIKey, 20, _pageNumber, "photo");
 
-    NetworkHelper networkHelper = NetworkHelper(url: url);
+    _photos = result.images.map((e) => e.url).toList();
 
-    dynamic data = await networkHelper.getData();
-
-    for (var i = 0; i < 20; i++) {
-      pixabyImages.add(data["hits"][i]["largeImageURL"]);
-    }
-
-    _photos = pixabyImages;
     notifyListeners();
   }
 
   Future<void> loadAnotherPage() async {
-    String url =
-        "https://pixabay.com/api/?key=$pixabyAPIKey&image_type=photo&per_page=20&page=${_pageNumber + 1}";
 
-    NetworkHelper networkHelper = NetworkHelper(url: url);
+    final Result result = await _restClient.getPhotos(pixabyAPIKey, 20, _pageNumber + 1, "photo");
 
-    dynamic data = await networkHelper.getData();
-
-    for (var i = 0; i < 20; i++) {
-      _photos.add(data["hits"][i]["largeImageURL"]);
-    }
+    _photos.addAll(result.images.map((e) => e.url));
 
     notifyListeners();
   }
